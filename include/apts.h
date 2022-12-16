@@ -293,37 +293,26 @@ public:
 
     /**
      * @brief Time when the particle exists the well.
+     * This requires a minimisation, that is here performed with a simple Newton-Raphson method.
      * @return double
      */
     double tau_exit() const
     {
         APTS_REQUIRE(this->exits(), std::out_of_range);
 
-        size_t n = 100;
-        double t0 = 0.0;
-        double t1;
-        double dt = this->tau_at_rmax() / static_cast<double>(n);
-        double tau = t0;
+        double tau = 0.5 * this->tau_at_rmax();
 
-        for (size_t iter = 0; iter < 100; ++iter) {
-            for (size_t i = 0; i < n; ++i) {
+        for (size_t i = 0; i < 100; ++i) {
 
-                double x = this->r_scalar(tau);
+            double x = this->r_scalar(tau);
+            double v = this->v_scalar(tau);
+            double f = x - m_rmax;
 
-                if (x >= m_rmax) {
-                    t0 = tau;
-                    t1 = tau + dt;
-
-                    if ((1.0 - t0 / t1) < 1e-5) {
-                        return 0.5 * (t0 + t1);
-                    }
-
-                    dt = (t1 - t0) / static_cast<double>(n);
-                    continue;
-                }
-
-                tau += dt;
+            if (std::abs(f / m_rmax) < 1e-6) {
+                return tau;
             }
+
+            tau -= f / v;
         }
 
         throw std::runtime_error("tau_exit: failure to converge");
