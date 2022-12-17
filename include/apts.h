@@ -14,8 +14,8 @@
 /**
  * \cond
  */
-#define Q(x) #x
-#define QUOTE(x) Q(x)
+#define QUOTEHELPER(x) #x
+#define QUOTE(x) QUOTEHELPER(x)
 
 #define APTS_ASSERT_IMPL(expr, assertion, file, line, function) \
     if (!(expr)) { \
@@ -141,7 +141,7 @@ protected:
     double m_chi;
     double m_phi;
     double m_L;
-    double m_Lprime;
+    double m_Q;
     double m_phase;
     double m_pi;
 
@@ -214,16 +214,142 @@ public:
         m_L = std::sqrt(
             (std::pow(m_omega * m_r0prime, 2.0) + std::pow(m_lambda * m_r0prime + m_v0prime, 2.0)) /
             std::pow(m_omega, 2.0));
-        m_Lprime = m_L * m_lambda * std::sqrt(1 + std::pow(m_omega / m_lambda, 2.0));
+        m_Q = m_L * m_lambda * std::sqrt(1 + std::pow(m_omega / m_lambda, 2.0));
     }
 
     /**
-     * @brief Parameter: initial velocity,
+     * @brief Parameter: width
+     * @return double
+     */
+    double w() const
+    {
+        return m_w;
+    }
+
+    /**
+     * @brief Parameter: mass
+     * @return double
+     */
+    double m() const
+    {
+        return m_m;
+    }
+
+    /**
+     * @brief Parameter: damping coefficient
+     * @return double
+     */
+    double eta() const
+    {
+        return m_eta;
+    }
+
+    /**
+     * @brief Parameter: elastic modulus
+     * @return double
+     */
+    double kappa() const
+    {
+        return m_kappa;
+    }
+
+    /**
+     * @brief Parameter: external force
+     * @return double
+     */
+    double F() const
+    {
+        return m_F;
+    }
+
+    /**
+     * @brief Parameter: initial position
+     * @return double
+     */
+    double r0() const
+    {
+        return m_r0;
+    }
+
+    /**
+     * @brief Parameter: initial velocity
      * @return double
      */
     double v0() const
     {
         return m_v0;
+    }
+
+    /**
+     * @brief Parameter: delta r
+     * @return double
+     */
+    double delta_r() const
+    {
+        return m_delta_r;
+    }
+
+    /**
+     * @brief Parameter: delta v
+     * @return double
+     */
+    double delta_v() const
+    {
+        return m_v0 - m_v0prime;
+    }
+
+    /**
+     * @brief Parameter: lambda
+     * @return double
+     */
+    double lambda() const
+    {
+        return m_lambda;
+    }
+
+    /**
+     * @brief Parameter: omega
+     * @return double
+     */
+    double omega() const
+    {
+        return m_omega;
+    }
+
+    /**
+     * @brief Parameter: chi
+     * @return double
+     */
+    double chi() const
+    {
+        return m_chi;
+    }
+
+    /**
+     * @brief Parameter: phi
+     * @return double
+     */
+    double phi() const
+    {
+        return m_phi;
+    }
+
+    /**
+     * @brief Parameter: L
+     * @return double
+     */
+    double L() const
+    {
+        return m_L;
+    }
+
+    /**
+     * @brief Parameter: Q
+     * @return double
+     */
+    double Q() const
+    {
+        return m_Q;
     }
 
 protected:
@@ -244,7 +370,7 @@ protected:
      */
     double v_scalar(double tau) const
     {
-        return -m_Lprime * std::exp(-m_lambda * tau) * std::cos(m_omega * tau + m_phi - m_phase);
+        return -m_Q * std::exp(-m_lambda * tau) * std::cos(m_omega * tau + m_phi - m_phase);
     }
 
 public:
@@ -267,7 +393,7 @@ public:
     template <class T>
     T v(const T& tau) const
     {
-        return -m_Lprime * xt::exp(-m_lambda * tau) * xt::cos(m_omega * tau + m_phi - m_phase);
+        return -m_Q * xt::exp(-m_lambda * tau) * xt::cos(m_omega * tau + m_phi - m_phase);
     }
 
     /**

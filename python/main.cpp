@@ -54,17 +54,32 @@ PYBIND11_MODULE(_apts, m)
         py::class_<S> cls(m, "Quadratic");
 
         cls.def(
-            py::init<double, double, double, double, double>(),
+            py::init<double, double, double, double, double, double>(),
             "Constructor.",
             py::arg("v0") = 0,
             py::arg("w") = 1,
             py::arg("m") = 1,
             py::arg("eta") = 0.1,
-            py::arg("mu") = 1);
+            py::arg("mu") = 1,
+            py::arg("f") = 0);
 
         cls.def("__repr__", [](const S&) { return "<apts.Quadratic>"; });
 
+        cls.def_property_readonly("w", &S::w);
+        cls.def_property_readonly("m", &S::m);
+        cls.def_property_readonly("eta", &S::eta);
+        cls.def_property_readonly("kappa", &S::kappa);
+        cls.def_property_readonly("F", &S::F);
+        cls.def_property_readonly("r0", &S::r0);
         cls.def_property("v0", &S::v0, &S::set_v0);
+        cls.def_property_readonly("delta_r", &S::delta_r);
+        cls.def_property_readonly("delta_v", &S::delta_v);
+        cls.def_property_readonly("lam", &S::lambda);
+        cls.def_property_readonly("omega", &S::omega);
+        cls.def_property_readonly("chi", &S::chi);
+        cls.def_property_readonly("phi", &S::phi);
+        cls.def_property_readonly("L", &S::L);
+        cls.def_property_readonly("Q", &S::Q);
         cls.def_property_readonly("exits", &S::exits);
         cls.def_property_readonly("tau_exit", &S::tau_exit);
         cls.def_property_readonly("vc", &S::vc);
