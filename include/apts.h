@@ -144,6 +144,8 @@ protected:
     double m_Lprime;
     double m_phase;
     double m_pi;
+    double m_vc;
+    bool m_vc_computed;
 
 public:
     /**
@@ -173,6 +175,7 @@ public:
         m_omega = std::sqrt(m_kappa / m_m - std::pow(m_lambda, 2.0));
         m_phase = std::atan(m_omega / m_lambda);
         m_pi = xt::numeric_constants<double>::PI;
+        m_vc_computed = false;
 
         this->set_v0(v0);
     }
@@ -326,32 +329,38 @@ public:
     {
         double v0_bak = m_v0;
 
-        size_t n = 100000;
         double v0 = 0.0;
-        double v1;
-        double dv = 1e-2;
-        double v = v0;
+        double v1 = 10.0;
 
-        for (size_t iter = 0; iter < 100; ++iter) {
-            for (size_t i = 0; i < n; ++i) {
+        // initial search
+        for (size_t i = 0; i < 101; ++i) {
+            this->set_v0(v1);
 
-                this->set_v0(v);
+            if (this->exits()) {
+                break;
+            }
 
-                if (this->exits()) {
-                    v0 = v;
-                    v1 = v + dv;
+            v1 *= 2.0;
 
-                    if ((1.0 - v0 / v1) < 1e-5) {
-                        this->set_v0(v0_bak);
-                        return 0.5 * (v0 + v1);
-                    }
+            if (i >= 100) {
+                throw std::runtime_error("vc: failure to find an initial guess");
+            }
+        }
 
-                    n = 100;
-                    dv = (v1 - v0) / static_cast<double>(n);
-                    continue;
-                }
+        for (size_t i = 0; i < 1000; ++i) {
+            double vm = 0.5 * (v0 + v1);
+            this->set_v0(vm);
 
-                v += dv;
+            if (this->exits()) {
+                v1 = vm;
+            }
+            else {
+                v0 = vm;
+            }
+
+            if ((1.0 - v0 / v1) < 1e-6) {
+                this->set_v0(v0_bak);
+                return 0.5 * (v0 + v1);
             }
         }
 
