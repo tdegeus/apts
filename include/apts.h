@@ -144,8 +144,12 @@ protected:
     double m_Lprime;
     double m_phase;
     double m_pi;
+
     double m_vc;
     bool m_vc_computed;
+
+    double m_tauexit;
+    bool m_tauexit_computed;
 
 public:
     /**
@@ -176,6 +180,7 @@ public:
         m_phase = std::atan(m_omega / m_lambda);
         m_pi = xt::numeric_constants<double>::PI;
         m_vc_computed = false;
+        m_tauexit_computed = false;
 
         this->set_v0(v0);
     }
@@ -301,6 +306,10 @@ public:
      */
     double tau_exit() const
     {
+        if (m_tauexit_computed) {
+            return m_tauexit;
+        }
+
         APTS_REQUIRE(this->exits(), std::out_of_range);
 
         double tau = 0.5 * this->tau_at_rmax();
@@ -312,7 +321,9 @@ public:
             double f = x - m_rmax;
 
             if (std::abs(f / m_rmax) < 1e-6) {
-                return tau;
+                m_tauexit = tau;
+                m_tauexit_computed = true;
+                return m_tauexit;
             }
 
             tau -= f / v;
@@ -327,6 +338,10 @@ public:
      */
     double vc()
     {
+        if (m_vc_computed) {
+            return m_vc;
+        }
+
         double v0_bak = m_v0;
 
         double v0 = 0.0;
@@ -360,7 +375,9 @@ public:
 
             if ((1.0 - v0 / v1) < 1e-6) {
                 this->set_v0(v0_bak);
-                return 0.5 * (v0 + v1);
+                m_vc = 0.5 * (v0 + v1)
+                m_vc_computed = true;
+                return m_vc;
             }
         }
 
