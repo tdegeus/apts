@@ -28,6 +28,7 @@ endif()
 # Find dependencies
 
 find_dependency(xtensor)
+find_dependency(prrng)
 
 # Define support target "apts::compiler_warnings"
 

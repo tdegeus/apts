@@ -8,14 +8,15 @@
 #define APTS_H
 
 #include <cmath>
+#include <prrng.h>
 #include <xtensor/xmath.hpp>
 #include <xtensor/xtensor.hpp>
 
 /**
  * \cond
  */
-#define QUOTEHELPER(x) #x
-#define QUOTE(x) QUOTEHELPER(x)
+#define APTS_QUOTEHELPER(x) #x
+#define APTS_QUOTE(x) APTS_QUOTEHELPER(x)
 
 #define APTS_ASSERT_IMPL(expr, assertion, file, line, function) \
     if (!(expr)) { \
@@ -115,7 +116,7 @@ inline std::string unquote(const std::string& arg)
  */
 inline std::string version()
 {
-    return detail::unquote(std::string(QUOTE(APTS_VERSION)));
+    return detail::unquote(std::string(APTS_QUOTE(APTS_VERSION)));
 }
 
 /**
@@ -154,7 +155,7 @@ protected:
 public:
     /**
      * @param v0 Initial velocity.
-     * @param w Width.
+     * @param w Width of the potential.
      * @param m Mass.
      * @param eta Damping.
      * @param mu Stiffness.
@@ -167,22 +168,32 @@ public:
         double eta = 0.1,
         double mu = 1,
         double f = 0)
-        : m_w(w), m_m(m), m_eta(eta), m_kappa(mu), m_F(f)
+        : m_m(m), m_eta(eta), m_kappa(mu), m_F(f)
     {
         APTS_REQUIRE(std::pow(eta, 2.0) <= 4.0 * m, std::out_of_range);
 
-        m_delta_r = m_F / m_kappa;
-        m_r0 = -0.5 * m_w;
-        m_rmax = 0.5 * m_w;
-        m_r0prime = m_r0 - m_delta_r;
         m_lambda = m_eta / (2.0 * m_m);
         m_omega = std::sqrt(m_kappa / m_m - std::pow(m_lambda, 2.0));
         m_phase = std::atan(m_omega / m_lambda);
         m_pi = xt::numeric_constants<double>::PI;
+        m_delta_r = m_F / m_kappa;
+
+        this->set_w(w);
+        this->set_v0(v0);
+    }
+
+    /**
+     * @brief Change the width of the potential.
+     * @param value Width.
+     */
+    void set_w(double value)
+    {
+        m_w = value;
+        m_r0 = -0.5 * m_w;
+        m_rmax = 0.5 * m_w;
+        m_r0prime = m_r0 - m_delta_r;
         m_vc_computed = false;
         m_tauexit_computed = false;
-
-        this->set_v0(v0);
     }
 
     /**
@@ -215,6 +226,9 @@ public:
             (std::pow(m_omega * m_r0prime, 2.0) + std::pow(m_lambda * m_r0prime + m_v0prime, 2.0)) /
             std::pow(m_omega, 2.0));
         m_Q = m_L * m_lambda * std::sqrt(1 + std::pow(m_omega / m_lambda, 2.0));
+
+        m_vc_computed = false;
+        m_tauexit_computed = false;
     }
 
     /**
@@ -352,7 +366,6 @@ public:
         return m_Q;
     }
 
-protected:
     /**
      * @brief Position at certain time.
      * @param tau Time.
@@ -373,7 +386,6 @@ protected:
         return -m_Q * std::exp(-m_lambda * tau) * std::cos(m_omega * tau + m_phi - m_phase);
     }
 
-public:
     /**
      * @brief Position at different times.
      * @param tau Array of time.
@@ -430,7 +442,7 @@ public:
      * This requires a minimisation, that is here performed with a simple Newton-Raphson method.
      * @return double
      */
-    double tau_exit() const
+    double tau_exit()
     {
         if (m_tauexit_computed) {
             return m_tauexit;
@@ -501,7 +513,7 @@ public:
 
             if ((1.0 - v0 / v1) < 1e-6) {
                 this->set_v0(v0_bak);
-                m_vc = 0.5 * (v0 + v1)
+                m_vc = 0.5 * (v0 + v1);
                 m_vc_computed = true;
                 return m_vc;
             }
@@ -510,6 +522,95 @@ public:
         throw std::runtime_error("vc: failure to converge");
     }
 };
+
+/**
+ * @brief Search final well of a thrown particle.
+ * @param particle Particle (`w` overriden from the start, `v0` is important).
+ * @param distribution Type of distribution for `w`, see prrng.
+ * @param parameters Parameters for the distribution (defaults appended), see prrng.
+ * @param seed `initstate` of the random generator.
+ */
+inline double throw_particle_Quadratic(
+    Quadratic particle,
+    enum prrng::distribution distribution,
+    const std::vector<double>& parameters,
+    uint64_t seed = 0)
+{
+    prrng::pcg32 gen(seed);
+    double w;
+    auto param = prrng::default_parameters(distribution, parameters);
+
+    for (size_t i = 0; i < 1e8; ++i) {
+
+        while (true) {
+            switch (distribution) {
+            case prrng::distribution::random:
+                w = gen.random() * param[0] + param[1];
+                break;
+            case prrng::distribution::exponential:
+                w = gen.exponential(param[0]) + param[1];
+                break;
+            case prrng::distribution::power:
+                w = gen.power(param[0]) + param[1];
+                break;
+            case prrng::distribution::delta:
+                w = gen.delta(param[0]) + param[1];
+                break;
+            case prrng::distribution::pareto:
+                w = gen.pareto(param[0], param[1]) + param[2];
+                break;
+            case prrng::distribution::weibull:
+                w = gen.weibull(param[0], param[1]) + param[2];
+                break;
+            case prrng::distribution::gamma:
+                w = gen.gamma(param[0], param[1]) + param[2];
+                break;
+            case prrng::distribution::normal:
+                w = gen.normal(param[0], param[1]) + param[2];
+                break;
+            case prrng::distribution::custom:
+                throw std::runtime_error("Unknow distribution");
+            }
+        }
+
+        particle.set_w(w);
+
+        if (!particle.exits()) {
+            return particle.w();
+        }
+
+        particle.set_v0(particle.v_scalar(particle.tau_exit()));
+    }
+
+    throw std::runtime_error("throw_particle_Quadratic: failure to stop");
+}
+
+/**
+ * @brief Search final well of a thrown particles.
+ * @param v0 Initial velocity per particle.
+ * @param particle Particle (`w` and `v0` are overriden).
+ * @param distribution Type of distribution for `w`, see prrng.
+ * @param parameters Parameters for the distribution (defaults appended), see prrng.
+ * @param seed `initstate` of the first random generator.
+ */
+template <class T>
+inline T throw_particles_Quadratic(
+    const T& v0,
+    Quadratic particle,
+    enum prrng::distribution distribution,
+    const std::vector<double>& parameters,
+    uint64_t seed = 0)
+{
+    uint64_t n = static_cast<uint64_t>(v0.size());
+    T ret = v0;
+
+    for (uint64_t i = 0; i < n; ++i) {
+        particle.set_v0(v0[i]);
+        ret[i] = throw_particle_Quadratic(particle, distribution, parameters, seed + i);
+    }
+
+    return ret;
+}
 
 } // namespace apts
 
