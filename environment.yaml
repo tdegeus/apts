@@ -5,6 +5,7 @@ dependencies:
 - doxygen >=1.9.5
 - ninja
 - numpy
+- prrng >1.8.1
 - pybind11
 - python
 - scikit-build
