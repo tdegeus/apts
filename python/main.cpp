@@ -65,7 +65,7 @@ PYBIND11_MODULE(_apts, m)
 
         cls.def("__repr__", [](const S&) { return "<apts.Quadratic>"; });
 
-        cls.def_property("w", &S::w, &S::set_w);
+        cls.def_property_readonly("w", &S::w);
         cls.def_property_readonly("m", &S::m);
         cls.def_property_readonly("eta", &S::eta);
         cls.def_property_readonly("kappa", &S::kappa);
@@ -89,21 +89,29 @@ PYBIND11_MODULE(_apts, m)
 
     m.def(
         "throw_particle_Quadratic",
-        &apts::throw_particle_Quadratic,
+        &apts::throw_particle_Quadratic<xt::pytensor<double, 1>>,
         "Get stopping well",
-        py::arg("particle"),
-        py::arg("distribution"),
-        py::arg("parameters"),
+        py::arg("distribution_w"),
+        py::arg("parameters_w"),
+        py::arg("v0"),
+        py::arg("m") = 1,
+        py::arg("eta") = 0.1,
+        py::arg("mu") = 1,
+        py::arg("f") = 0,
         py::arg("seed") = 0);
 
     m.def(
-        "throw_particles_Quadratic",
-        &apts::throw_particles_Quadratic<xt::pytensor<double, 1>>,
+        "throw_particle_Quadratic_tilted",
+        &apts::throw_particle_Quadratic_tilted<xt::pytensor<double, 1>>,
         "Get stopping well",
+        py::arg("distribution_w"),
+        py::arg("parameters_w"),
+        py::arg("distribution_f"),
+        py::arg("parameters_f"),
         py::arg("v0"),
-        py::arg("particle"),
-        py::arg("distribution"),
-        py::arg("parameters"),
+        py::arg("m") = 1,
+        py::arg("eta") = 0.1,
+        py::arg("mu") = 1,
         py::arg("seed") = 0);
 
 } // PYBIND11_MODULE
