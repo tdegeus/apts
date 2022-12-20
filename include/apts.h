@@ -542,35 +542,33 @@ inline double throw_particle_Quadratic(
 
     for (size_t i = 0; i < 1e8; ++i) {
 
-        while (true) {
-            switch (distribution) {
-            case prrng::distribution::random:
-                w = gen.random() * param[0] + param[1];
-                break;
-            case prrng::distribution::exponential:
-                w = gen.exponential(param[0]) + param[1];
-                break;
-            case prrng::distribution::power:
-                w = gen.power(param[0]) + param[1];
-                break;
-            case prrng::distribution::delta:
-                w = gen.delta(param[0]) + param[1];
-                break;
-            case prrng::distribution::pareto:
-                w = gen.pareto(param[0], param[1]) + param[2];
-                break;
-            case prrng::distribution::weibull:
-                w = gen.weibull(param[0], param[1]) + param[2];
-                break;
-            case prrng::distribution::gamma:
-                w = gen.gamma(param[0], param[1]) + param[2];
-                break;
-            case prrng::distribution::normal:
-                w = gen.normal(param[0], param[1]) + param[2];
-                break;
-            case prrng::distribution::custom:
-                throw std::runtime_error("Unknow distribution");
-            }
+        switch (distribution) {
+        case prrng::distribution::random:
+            w = gen.random() * param[0] + param[1];
+            break;
+        case prrng::distribution::exponential:
+            w = gen.exponential(param[0]) + param[1];
+            break;
+        case prrng::distribution::power:
+            w = gen.power(param[0]) + param[1];
+            break;
+        case prrng::distribution::delta:
+            w = gen.delta(param[0]) + param[1];
+            break;
+        case prrng::distribution::pareto:
+            w = gen.pareto(param[0], param[1]) + param[2];
+            break;
+        case prrng::distribution::weibull:
+            w = gen.weibull(param[0], param[1]) + param[2];
+            break;
+        case prrng::distribution::gamma:
+            w = gen.gamma(param[0], param[1]) + param[2];
+            break;
+        case prrng::distribution::normal:
+            w = gen.normal(param[0], param[1]) + param[2];
+            break;
+        case prrng::distribution::custom:
+            throw std::runtime_error("Unknow distribution");
         }
 
         particle.set_w(w);
