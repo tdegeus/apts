@@ -48,6 +48,18 @@ PYBIND11_MODULE(_apts, m)
         "Return version string. "
         "See :cpp:func:`apts::version`.");
 
+    m.def(
+        "version_dependencies",
+        &apts::version_dependencies,
+        "Return list of version strings. "
+        "See :cpp:func:`apts::version_dependencies`.");
+
+    m.def(
+        "version_compiler",
+        &apts::version_compiler,
+        "Return list of version strings. "
+        "See :cpp:func:`apts::version_compiler`.");
+
     {
         using S = apts::Quadratic;
 
@@ -112,6 +124,7 @@ PYBIND11_MODULE(_apts, m)
         py::arg("m") = 1,
         py::arg("eta") = 0.1,
         py::arg("mu") = 1,
-        py::arg("seed") = 0);
+        py::arg("seed_w") = 0,
+        py::arg("seed_f") = 1);
 
 } // PYBIND11_MODULE

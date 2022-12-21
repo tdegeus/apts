@@ -120,6 +120,34 @@ inline std::string version()
 }
 
 /**
+ * Return versions of this library and of all of its dependencies.
+ * The output is a list of strings, e.g.:
+ *
+ *     "apts=0.1.0",
+ *     "prrng=1.7.0",
+ *     "xtensor=0.20.1"
+ *     ...
+ *
+ * @return List of strings.
+ */
+inline std::vector<std::string> version_dependencies()
+{
+    std::vector<std::string> ret = prrng::version_dependencies();
+    ret.push_back("apts=" + version());
+    std::sort(ret.begin(), ret.end(), std::greater<std::string>());
+    return ret;
+}
+
+/**
+ * Return information on the compiler, the platform, the C++ standard, and the compilation data.
+ * @return List of strings.
+ */
+inline std::vector<std::string> version_compiler()
+{
+    return prrng::version_compiler();
+}
+
+/**
  * @brief Quadratic potential.
  */
 class Quadratic {
@@ -455,6 +483,8 @@ public:
             tau -= f / v;
         }
 
+        std::cout << "w = " << m_w << std::endl;
+        std::cout << "v0 = " << m_v0 << std::endl;
         throw std::runtime_error("tau_exit: failure to converge");
     }
 
@@ -526,7 +556,7 @@ public:
 template <class T>
 inline std::tuple<T, T> throw_particle_Quadratic(
     enum prrng::distribution distribution_w,
-    const std::vector<double>& parameters_w,
+    std::vector<double> parameters_w,
     const T& v0,
     double m = 1,
     double eta = 0.1,
@@ -534,52 +564,22 @@ inline std::tuple<T, T> throw_particle_Quadratic(
     double f = 0,
     uint64_t seed = 0)
 {
-    auto param = prrng::default_parameters(distribution_w, parameters_w);
+    parameters_w = prrng::default_parameters(distribution_w, parameters_w);
 
     T ret_w = v0;
     T ret_v = v0;
     uint64_t n = static_cast<uint64_t>(v0.size());
-
-    double w;
-    size_t tmax = 1e8;
+    size_t tmax = 1e12;
     size_t t;
 
     for (uint64_t i = 0; i < n; ++i) {
 
-        prrng::pcg32 gen(seed + i);
+        prrng::pcg32 gen(seed + i, 0);
         double v = v0[i];
 
         for (t = 0; t < tmax; ++t) {
 
-            switch (distribution_w) {
-            case prrng::distribution::random:
-                w = gen.random() * param[0] + param[1];
-                break;
-            case prrng::distribution::exponential:
-                w = gen.exponential(param[0]) + param[1];
-                break;
-            case prrng::distribution::power:
-                w = gen.power(param[0]) + param[1];
-                break;
-            case prrng::distribution::delta:
-                w = gen.delta(param[0]) + param[1];
-                break;
-            case prrng::distribution::pareto:
-                w = gen.pareto(param[0], param[1]) + param[2];
-                break;
-            case prrng::distribution::weibull:
-                w = gen.weibull(param[0], param[1]) + param[2];
-                break;
-            case prrng::distribution::gamma:
-                w = gen.gamma(param[0], param[1]) + param[2];
-                break;
-            case prrng::distribution::normal:
-                w = gen.normal(param[0], param[1]) + param[2];
-                break;
-            case prrng::distribution::custom:
-                throw std::runtime_error("Unknow distribution");
-            }
-
+            double w = gen.draw(distribution_w, parameters_w, false);
             Quadratic p(v, w, m, eta, mu, f);
 
             if (!p.exits()) {
@@ -609,98 +609,41 @@ inline std::tuple<T, T> throw_particle_Quadratic(
  * @param m Mass.
  * @param eta Damping.
  * @param mu Stiffness.
- * @param seed `initstate` of the first random generator.
+ * @param seed_w `initstate` of the first random generator.
+ * @param seed_f `initstate` of the first random generator.
  * @return `(w, v)` Final well and entry velocity in that well.
  */
 template <class T>
 inline std::tuple<T, T> throw_particle_Quadratic_tilted(
     enum prrng::distribution distribution_w,
-    const std::vector<double>& parameters_w,
+    std::vector<double> parameters_w,
     enum prrng::distribution distribution_f,
-    const std::vector<double>& parameters_f,
+    std::vector<double> parameters_f,
     const T& v0,
     double m = 1,
     double eta = 0.1,
     double mu = 1,
-    uint64_t seed = 0)
+    uint64_t seed_w = 0,
+    uint64_t seed_f = 1)
 {
-    auto param_w = prrng::default_parameters(distribution_w, parameters_w);
-    auto param_f = prrng::default_parameters(distribution_f, parameters_f);
-
     T ret_w = v0;
     T ret_v = v0;
     uint64_t n = static_cast<uint64_t>(v0.size());
-
-    double w;
-    double f;
-    size_t tmax = 1e8;
+    size_t tmax = 1e12;
     size_t t;
+    parameters_w = prrng::default_parameters(distribution_w, parameters_w);
+    parameters_f = prrng::default_parameters(distribution_f, parameters_f);
 
     for (uint64_t i = 0; i < n; ++i) {
 
-        prrng::pcg32 gen(seed + i);
+        prrng::pcg32 gen_w(seed_w + i, 0);
+        prrng::pcg32 gen_f(seed_f + i, 0);
         double v = v0[i];
 
         for (t = 0; t < tmax; ++t) {
 
-            switch (distribution_w) {
-            case prrng::distribution::random:
-                w = gen.random() * param_w[0] + param_w[1];
-                break;
-            case prrng::distribution::exponential:
-                w = gen.exponential(param_w[0]) + param_w[1];
-                break;
-            case prrng::distribution::power:
-                w = gen.power(param_w[0]) + param_w[1];
-                break;
-            case prrng::distribution::delta:
-                w = gen.delta(param_w[0]) + param_w[1];
-                break;
-            case prrng::distribution::pareto:
-                w = gen.pareto(param_w[0], param_w[1]) + param_w[2];
-                break;
-            case prrng::distribution::weibull:
-                w = gen.weibull(param_w[0], param_w[1]) + param_w[2];
-                break;
-            case prrng::distribution::gamma:
-                w = gen.gamma(param_w[0], param_w[1]) + param_w[2];
-                break;
-            case prrng::distribution::normal:
-                w = gen.normal(param_w[0], param_w[1]) + param_w[2];
-                break;
-            case prrng::distribution::custom:
-                throw std::runtime_error("Unknow distribution");
-            }
-
-            switch (distribution_f) {
-            case prrng::distribution::random:
-                f = gen.random() * param_f[0] + param_f[1];
-                break;
-            case prrng::distribution::exponential:
-                f = gen.exponential(param_f[0]) + param_f[1];
-                break;
-            case prrng::distribution::power:
-                f = gen.power(param_f[0]) + param_f[1];
-                break;
-            case prrng::distribution::delta:
-                f = gen.delta(param_f[0]) + param_f[1];
-                break;
-            case prrng::distribution::pareto:
-                f = gen.pareto(param_f[0], param_f[1]) + param_f[2];
-                break;
-            case prrng::distribution::weibull:
-                f = gen.weibull(param_f[0], param_f[1]) + param_f[2];
-                break;
-            case prrng::distribution::gamma:
-                f = gen.gamma(param_f[0], param_f[1]) + param_f[2];
-                break;
-            case prrng::distribution::normal:
-                f = gen.normal(param_f[0], param_f[1]) + param_f[2];
-                break;
-            case prrng::distribution::custom:
-                throw std::runtime_error("Unknow distribution");
-            }
-
+            double w = gen_w.draw(distribution_w, parameters_w, false);
+            double f = gen_f.draw(distribution_f, parameters_f, false);
             Quadratic p(v, w, m, eta, mu, f);
 
             if (!p.exits()) {
