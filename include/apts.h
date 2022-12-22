@@ -152,33 +152,29 @@ inline std::vector<std::string> version_compiler()
  */
 class Quadratic {
 protected:
-    double m_w;
-    double m_m;
-    double m_eta;
-    double m_kappa;
-    double m_F;
-
-    double m_r0;
-    double m_v0;
-    double m_r0prime;
-    double m_v0prime;
-    double m_rmax;
-    double m_delta_r;
-
-    double m_lambda;
-    double m_omega;
-    double m_chi;
-    double m_phi;
-    double m_L;
-    double m_Q;
-    double m_phase;
-    double m_pi;
-
-    double m_vc;
-    bool m_vc_computed;
-
-    double m_tauexit;
-    bool m_tauexit_computed;
+    double m_w;  ///< Width of the potential.
+    double m_m;  ///< Mass.
+    double m_eta;  ///< Damping.
+    double m_kappa;  ///< Stiffness.
+    double m_F;  ///< External force.
+    double m_r0;  ///< Initial position `== -w / 2`.
+    double m_v0;  ///< Initial velocity.
+    double m_r0prime;  ///< Effective initial position.
+    double m_v0prime;  ///< Effective initial velocity.
+    double m_right; ///< Right boundary of the potential  `== w / 2`.
+    double m_delta_r;  ///< Change of position due to external force.
+    double m_lambda;  ///< Inverse time due to damping.
+    double m_omega;  ///< Vibrational frequency.
+    double m_chi;  ///< Offset used to compute the phase shift.
+    double m_phi;  ///< Phase shift due to initial conditions.
+    double m_L;  ///< Amplitude of position.
+    double m_Q;  ///< Amplitude of velocity.
+    double m_phase;  ///< Phas.
+    double m_pi; ///< Pi.
+    double m_vc;  ///< Critical velocity below which the particle is trapped.
+    bool m_vc_computed;  ///< Whether the critical velocity has been computed.
+    double m_tauexit;  ///< Time at which the particle exits the potential.
+    bool m_tauexit_computed;  ///< Whether the exit time has been computed.
 
 public:
     /**
@@ -202,12 +198,12 @@ public:
 
         m_lambda = m_eta / (2.0 * m_m);
         m_omega = std::sqrt(m_kappa / m_m - std::pow(m_lambda, 2.0));
-        m_phase = std::atan(m_omega / m_lambda);
+        m_phase = std::atan2(m_omega, m_lambda);
         m_pi = xt::numeric_constants<double>::PI;
 
         m_delta_r = m_F / m_kappa;
         m_r0 = -0.5 * m_w;
-        m_rmax = 0.5 * m_w;
+        m_right = 0.5 * m_w;
         m_r0prime = m_r0 - m_delta_r;
         this->set_v0(v0);
     }
@@ -426,6 +422,7 @@ public:
 
     /**
      * @brief Time at the maximum position take could be reached if the potential would be infinite.
+     *
      * @return double
      */
     double tau_at_rmax() const
@@ -446,19 +443,21 @@ public:
 
     /**
      * @brief Return `true` if the particle exits the well.
+     *
      * @return bool
      */
     bool exits() const
     {
-        return this->r_scalar(this->tau_at_rmax()) > m_rmax;
+        return this->r_scalar(this->tau_at_rmax()) > m_right;
     }
 
     /**
      * @brief Time when the particle exists the well.
      * This requires a minimisation, that is here performed with a simple Newton-Raphson method.
+     *
      * @return double
      */
-    double tau_exit()
+    long double tau_exit()
     {
         if (m_tauexit_computed) {
             return m_tauexit;
@@ -466,15 +465,15 @@ public:
 
         APTS_REQUIRE(this->exits(), std::out_of_range);
 
-        double tau = 0.5 * this->tau_at_rmax();
+        long double tau = 0.5 * this->tau_at_rmax();
 
         for (size_t i = 0; i < 100; ++i) {
 
-            double x = this->r_scalar(tau);
-            double v = this->v_scalar(tau);
-            double f = x - m_rmax;
+            long double x = this->r_scalar(tau);
+            long double v = this->v_scalar(tau);
+            long double f = x - m_right;
 
-            if (std::abs(f / m_rmax) < 1e-6) {
+            if (std::abs(f / m_right) < 1e-8) {
                 m_tauexit = tau;
                 m_tauexit_computed = true;
                 return m_tauexit;
@@ -490,6 +489,7 @@ public:
 
     /**
      * @brief Initial velocity below which the particle does not exit the well.
+     *
      * @return double
      */
     double vc()
@@ -543,6 +543,7 @@ public:
 
 /**
  * @brief Search final well of a thrown particles.
+ *
  * @param distribution_w Type of distribution for `w`, see prrng.
  * @param parameters_w Parameters for the distribution (defaults appended), see prrng.
  * @param v0 Initial velocity.
@@ -566,16 +567,16 @@ inline std::tuple<T, T> throw_particle_Quadratic(
 {
     parameters_w = prrng::default_parameters(distribution_w, parameters_w);
 
-    T ret_w = v0;
-    T ret_v = v0;
+    T ret_w = xt::empty_like(v0);
+    T ret_v = xt::empty_like(v0);
     uint64_t n = static_cast<uint64_t>(v0.size());
     size_t tmax = 1e12;
     size_t t;
 
-    for (uint64_t i = 0; i < n; ++i) {
+    for (uint64_t step = 0; step < n; ++step) {
 
-        prrng::pcg32 gen(seed + i, 0);
-        double v = v0[i];
+        prrng::pcg32 gen(seed + step, 0);
+        double v = v0(step);
 
         for (t = 0; t < tmax; ++t) {
 
@@ -583,8 +584,8 @@ inline std::tuple<T, T> throw_particle_Quadratic(
             Quadratic p(v, w, m, eta, mu, f);
 
             if (!p.exits()) {
-                ret_w[i] = w;
-                ret_v[i] = v;
+                ret_w(step) = w;
+                ret_v(step) = v;
                 break;
             }
 
@@ -626,19 +627,19 @@ inline std::tuple<T, T> throw_particle_Quadratic_tilted(
     uint64_t seed_w = 0,
     uint64_t seed_f = 1)
 {
-    T ret_w = v0;
-    T ret_v = v0;
-    uint64_t n = static_cast<uint64_t>(v0.size());
+    T ret_w = xt::empty_like(v0);
+    T ret_v = xt::empty_like(v0);
+    uint64_t nsample = static_cast<uint64_t>(v0.size());
     size_t tmax = 1e12;
     size_t t;
     parameters_w = prrng::default_parameters(distribution_w, parameters_w);
     parameters_f = prrng::default_parameters(distribution_f, parameters_f);
 
-    for (uint64_t i = 0; i < n; ++i) {
+    for (uint64_t sample = 0; sample < nsample; ++sample) {
 
-        prrng::pcg32 gen_w(seed_w + i, 0);
-        prrng::pcg32 gen_f(seed_f + i, 0);
-        double v = v0[i];
+        prrng::pcg32 gen_w(seed_w + sample, 0);
+        prrng::pcg32 gen_f(seed_f + sample, 0);
+        double v = v0(sample);
 
         for (t = 0; t < tmax; ++t) {
 
@@ -647,8 +648,8 @@ inline std::tuple<T, T> throw_particle_Quadratic_tilted(
             Quadratic p(v, w, m, eta, mu, f);
 
             if (!p.exits()) {
-                ret_w[i] = w;
-                ret_v[i] = v;
+                ret_w(sample) = w;
+                ret_v(sample) = v;
                 break;
             }
 
