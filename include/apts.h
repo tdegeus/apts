@@ -152,29 +152,29 @@ inline std::vector<std::string> version_compiler()
  */
 class Quadratic {
 protected:
-    double m_w;  ///< Width of the potential.
-    double m_m;  ///< Mass.
-    double m_eta;  ///< Damping.
-    double m_kappa;  ///< Stiffness.
-    double m_F;  ///< External force.
-    double m_r0;  ///< Initial position `== -w / 2`.
-    double m_v0;  ///< Initial velocity.
-    double m_r0prime;  ///< Effective initial position.
-    double m_v0prime;  ///< Effective initial velocity.
+    double m_w; ///< Width of the potential.
+    double m_m; ///< Mass.
+    double m_eta; ///< Damping.
+    double m_kappa; ///< Stiffness.
+    double m_F; ///< External force.
+    double m_r0; ///< Initial position `== -w / 2`.
+    double m_v0; ///< Initial velocity.
+    double m_r0prime; ///< Effective initial position.
+    double m_v0prime; ///< Effective initial velocity.
     double m_right; ///< Right boundary of the potential  `== w / 2`.
-    double m_delta_r;  ///< Change of position due to external force.
-    double m_lambda;  ///< Inverse time due to damping.
-    double m_omega;  ///< Vibrational frequency.
-    double m_chi;  ///< Offset used to compute the phase shift.
-    double m_phi;  ///< Phase shift due to initial conditions.
-    double m_L;  ///< Amplitude of position.
-    double m_Q;  ///< Amplitude of velocity.
-    double m_phase;  ///< Phas.
+    double m_delta_r; ///< Change of position due to external force.
+    double m_lambda; ///< Inverse time due to damping.
+    double m_omega; ///< Vibrational frequency.
+    double m_chi; ///< Offset used to compute the phase shift.
+    double m_phi; ///< Phase shift due to initial conditions.
+    double m_L; ///< Amplitude of position.
+    double m_Q; ///< Amplitude of velocity.
+    double m_phase; ///< Phas.
     double m_pi; ///< Pi.
-    double m_vc;  ///< Critical velocity below which the particle is trapped.
-    bool m_vc_computed;  ///< Whether the critical velocity has been computed.
-    double m_tauexit;  ///< Time at which the particle exits the potential.
-    bool m_tauexit_computed;  ///< Whether the exit time has been computed.
+    double m_vc; ///< Critical velocity below which the particle is trapped.
+    bool m_vc_computed; ///< Whether the critical velocity has been computed.
+    double m_tauexit; ///< Time at which the particle exits the potential.
+    bool m_tauexit_computed; ///< Whether the exit time has been computed.
 
 public:
     /**
