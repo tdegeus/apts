@@ -99,6 +99,38 @@ PYBIND11_MODULE(_apts, m)
         cls.def("v", &S::v<xt::pyarray<double>>, py::arg("tau"));
     }
 
+    {
+        using S = apts::ThrowParticleQuadratic;
+
+        py::class_<S> cls(m, "ThrowParticleQuadratic");
+
+        cls.def(
+            py::init<
+                enum prrng::distribution,
+                std::vector<double>,
+                double,
+                double,
+                double,
+                double,
+                double,
+                uint64_t>(),
+            "Constructor.",
+            py::arg("distribution_w"),
+            py::arg("parameters_w"),
+            py::arg("v0"),
+            py::arg("m") = 1,
+            py::arg("eta") = 0.1,
+            py::arg("mu") = 1,
+            py::arg("f") = 0,
+            py::arg("seed") = 0);
+
+        cls.def("__repr__", [](const S&) { return "<apts.ThrowParticleQuadratic>"; });
+
+        cls.def_property_readonly("w", &S::w);
+        cls.def_property_readonly("v0", &S::v0);
+        cls.def_property_readonly("tau_exit", &S::tau_exit);
+    }
+
     m.def(
         "throw_particle_Quadratic",
         &apts::throw_particle_Quadratic<xt::pytensor<double, 1>>,

@@ -543,6 +543,96 @@ public:
 
 /**
  * @brief Search final well of a thrown particles.
+ * Compared to apts::throw_particle_Quadratic, this class considers only one particle,
+ * but stores intermediate variables.
+ */
+class ThrowParticleQuadratic {
+private:
+    std::vector<double> m_w; ///< See apts::ThrowParticleQuadratic::w
+    std::vector<double> m_v0; ///< See apts::ThrowParticleQuadratic::v0
+    std::vector<double> m_tau_exit; ///< See apts::ThrowParticleQuadratic::tau_exit
+
+public:
+    /**
+     * @param distribution_w Type of distribution for `w`, see prrng.
+     * @param parameters_w Parameters for the distribution (defaults appended), see prrng.
+     * @param v0 Initial velocity.
+     * @param m Mass.
+     * @param eta Damping.
+     * @param mu Stiffness.
+     * @param f External force.
+     * @param seed `initstate` of the first random generator.
+     */
+    ThrowParticleQuadratic(
+        enum prrng::distribution distribution_w,
+        std::vector<double> parameters_w,
+        double v0,
+        double m = 1,
+        double eta = 0.1,
+        double mu = 1,
+        double f = 0,
+        uint64_t seed = 0)
+    {
+        parameters_w = prrng::default_parameters(distribution_w, parameters_w);
+        size_t tmax = 1e12;
+        size_t t;
+
+        prrng::pcg32 gen(seed, 0);
+        double v = v0;
+
+        for (t = 0; t < tmax; ++t) {
+
+            double w = gen.draw(distribution_w, parameters_w, false);
+            Quadratic p(v, w, m, eta, mu, f);
+            double tau_exit = p.tau_exit();
+
+            m_w.push_back(w);
+            m_v0.push_back(v);
+            m_tau_exit.push_back(tau_exit);
+
+            if (!p.exits()) {
+                return;
+            }
+
+            v = p.v_scalar(tau_exit);
+        }
+
+        throw std::runtime_error("throw_particle_Quadratic: failure to stop");
+    }
+
+    /**
+     * @brief Return the visited wells.
+     *
+     * @return List
+     */
+    const std::vector<double>& w() const
+    {
+        return m_w;
+    }
+
+    /**
+     * @brief Return the entry velocity in each well.
+     *
+     * @return List
+     */
+    const std::vector<double>& v0() const
+    {
+        return m_v0;
+    }
+
+    /**
+     * @brief Return the duration that the particle spent in each well.
+     *
+     * @return List
+     */
+    const std::vector<double>& tau_exit() const
+    {
+        return m_tau_exit;
+    }
+}
+
+/**
+ * @brief Search final well of a thrown particles.
  *
  * @param distribution_w Type of distribution for `w`, see prrng.
  * @param parameters_w Parameters for the distribution (defaults appended), see prrng.
