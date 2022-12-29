@@ -584,15 +584,16 @@ public:
 
             double w = gen.draw(distribution_w, parameters_w, false);
             Quadratic p(v, w, m, eta, mu, f);
-            double tau_exit = p.tau_exit();
 
             m_w.push_back(w);
             m_v0.push_back(v);
-            m_tau_exit.push_back(tau_exit);
 
             if (!p.exits()) {
                 return;
             }
+
+            double tau_exit = p.tau_exit();
+            m_tau_exit.push_back(tau_exit);
 
             v = p.v_scalar(tau_exit);
         }
@@ -629,7 +630,7 @@ public:
     {
         return m_tau_exit;
     }
-}
+};
 
 /**
  * @brief Search final well of a thrown particles.
