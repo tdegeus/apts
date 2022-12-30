@@ -18,20 +18,24 @@ class Test_throw(unittest.TestCase):
         distribution = prrng.distribution.weibull
         parameters = [2]
 
-        details = apts.ThrowParticleQuadratic(
-            distribution_w=distribution,
-            parameters_w=parameters,
-            v0=v0,
-        )
+        for seed in range(3):
 
-        wstop, vstop = apts.throw_particle_Quadratic(
-            distribution_w=distribution,
-            parameters_w=parameters,
-            v0=[v0],
-        )
+            details = apts.ThrowParticleQuadratic(
+                distribution_w=distribution,
+                parameters_w=parameters,
+                v0=v0,
+                seed=seed,
+            )
 
-        self.assertAlmostEqual(wstop, details.w[-1])
-        self.assertAlmostEqual(vstop, details.v0[-1])
+            wstop, vstop = apts.throw_particle_Quadratic(
+                distribution_w=distribution,
+                parameters_w=parameters,
+                v0=[v0],
+                seed=seed,
+            )
+
+            self.assertAlmostEqual(wstop, details.w[-1])
+            self.assertAlmostEqual(vstop, details.v0[-1])
 
 
 if __name__ == "__main__":
