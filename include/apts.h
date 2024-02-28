@@ -473,7 +473,7 @@ public:
             long double v = this->v_scalar(tau);
             long double f = x - m_right;
 
-            if (std::abs(f / m_right) < 1e-8) {
+            if (std::abs(f / m_right) < 1e-7) {
                 m_tauexit = tau;
                 m_tauexit_computed = true;
                 return m_tauexit;
